@@ -2,15 +2,15 @@
 using System;
 using System.Collections.Generic;
 using AssetsSystem;
+using Managers;
 using UnityEngine;
 using Utils;
-using Object = UnityEngine.Object;
 
 namespace ViewSystem
 {
     public class ViewManager : Singleton<ViewManager>
     {
-        private const string GameRootTag = "GameRoot";
+        private const string HUDTag = "HUD";
         
         private readonly List<View> _views;
         private readonly List<WindowStackItem> _windowsStack;
@@ -24,15 +24,48 @@ namespace ViewSystem
             _views = new List<View>();
             _windowsStack = new List<WindowStackItem>();
             
-            GameObject gameRoot = GameObject.FindWithTag(GameRootTag);
+            GameObject gameRoot = GameObject.FindWithTag(HUDTag);
             if (!gameRoot)
             {
-                throw new ArgumentException("GameRoot not found: " + gameRoot.name);
+                throw new ArgumentException("GameRoot not found");
             }
 
-            Root = gameRoot.GetComponentInChildren<Canvas>().transform;
+            Canvas canvas = gameRoot.GetComponentInChildren<Canvas>();
+            if (!canvas)
+            {
+                throw new ArgumentException($"Canvas not found under GameObject with tag '{HUDTag}'");
+            }
+
+            Root = canvas.transform;
+            for (int i = Root.childCount - 1; i >= 0; i--)
+            {
+                UnityEngine.Object.Destroy(Root.GetChild(i).gameObject);
+            }
+            
         }
-        
+
+        public void OpenInitView()
+        {
+            View window = GetWindow<View>(EPrefabNames.Init, out bool firstOpen);
+            window.OnClose += WindowOnClose;
+            OpenWindow(window, firstOpen);
+        }
+
+        public T ShowPopup<T>(EPrefabNames name, Action<T> preOpen = null)  where T : Popup
+        {
+            T window = GetWindow<T>(name, out bool firstOpen);
+            preOpen.InvokeSafe(window);
+            
+            if (firstOpen)
+            {
+                window.Open();
+            }
+            else
+            {
+                window.ReOpen();
+            }
+            return window;
+        }
 
         public View OpenWindow(EPrefabNames name)
         {
@@ -41,31 +74,46 @@ namespace ViewSystem
 
         public T OpenWindow<T>(EPrefabNames name) where T : View
         {
-            bool firstOpen = false;
-            T window = _views.Find(item => item is T && !item.IsActive && item.Prefab == name && item.enabled) as T;
-
-            if (!window)
-            {
-                firstOpen = true;
-                window = AssetsManager.Instance.Instantiate<T>(name, Root.transform);
-                if (!window)
-                {
-                    Debug.LogError("window not found: " + name);
-                    return null;
-                }
-
-                _views.Add(window);
-            }
+            T window = GetWindow<T>(name, out bool firstOpen);
 
             window.OnClose += WindowOnClose;
 
+            SceneTransition.Play(() => OpenWindow(window, firstOpen));
+            
+            return window;
+        }
+
+        private T GetWindow<T>(EPrefabNames name, out bool firstOpen) where T : View
+        {
+            T window = _views.Find(item => item is T && !item.IsActive && item.Prefab == name && item.enabled) as T;
+            if (window)
+            {
+                firstOpen = false;
+                return window;
+            }
+
+            window = AssetsManager.Instance.Instantiate<T>(name, Root.transform);
+            if (!window)
+            {
+                throw new ArgumentException("Window not found: " + name);
+            }
+            
+            window.gameObject.SetActive(false);
+            _views.Add(window);
+
+            firstOpen = true;
+            return window;
+        }
+
+        private void OpenWindow<T>(T window, bool firstOpen) where T : View
+        {
             SetupUIBeforeWindowOpen(window);
 
             if (window.IgnoreStack)
             {
                 _windowsStack.Clear();
             }
-            _windowsStack.Add(new WindowStackItem { Name = name, Instance = window });
+            _windowsStack.Add(new WindowStackItem { Name = window.Prefab, Instance = window });
 
             if (firstOpen)
             {
@@ -77,9 +125,7 @@ namespace ViewSystem
             }
 
             Current = window;
-            return window;
         }
-
 
         private void SetupUIBeforeWindowOpen(View window)
         {
@@ -104,7 +150,10 @@ namespace ViewSystem
             }
 
             int idx = _windowsStack.FindLastIndex(item => item.Instance == obj);
-            _windowsStack.RemoveAt(idx);
+            if (idx >= 0)
+            {
+                _windowsStack.RemoveAt(idx);
+            }
 
             if (_windowsStack.Count <= 0)
             {
@@ -117,32 +166,12 @@ namespace ViewSystem
                 return;
             }
 
-            Current.ReOpen();
-        }
-
-        public void OnSceneClose()
-        {
-            CloseAll();
-
-            _views.Clear();
-
-            Transform root = Root;
-            for (int i = root.childCount - 1; i >= 0; i--)
+            SceneTransition.Play(() =>
             {
-                Object.Destroy(root.GetChild(i).gameObject);
-            }
+                Current.OnClose += WindowOnClose;
+                Current.ReOpen();
+            });
         }
-
-        public void CloseAll()
-        {
-            for (int i = _windowsStack.Count - 1; i >= 0; i--)
-            {
-                _windowsStack[i].Instance.Close();
-            }
-
-            _windowsStack.Clear();
-        }
-
 
         private class WindowStackItem
         {

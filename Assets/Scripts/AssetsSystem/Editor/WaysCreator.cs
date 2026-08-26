@@ -14,8 +14,8 @@ namespace AssetsSystem.Editor
     [InitializeOnLoad, CreateAssetMenu(fileName = "WaysCreator", menuName = "Scriptable Object/Ways Creator", order = 51)]
     public class WaysCreator : ScriptableObject
     {
-        private const string WAYS_CREATOR_PATH = "Assets/Resources/ScriptableObjects/WaysCreator.asset";
-        private const string WAYS_PATH = "Assets/Resources/ScriptableObjects/Ways.asset";
+        private const string WAYS_CREATOR_PATH = "Assets/Gamedata/Resources/ScriptableObjects/WaysCreator.asset";
+        private const string WAYS_PATH = "Assets/Gamedata/Resources/ScriptableObjects/Ways.asset";
         private const string PREFAB_NAMES_PATH = "Assets/Scripts/AssetsSystem/Enums/EPrefabNames.cs";
         private const string RESOURCE_NAMES_PATH = "Assets/Scripts/AssetsSystem/Enums/EResourceNames.cs";
 
@@ -78,14 +78,14 @@ namespace AssetsSystem.Editor
             {
                 writer.WriteLine("public enum EPrefabNames {");
                 int i = 0;
-                foreach (string item in oldNames)
+                foreach (var item in oldNames)
                 {
                     writer.WriteLine("    " + item + " = " + oldValues[i] + ",");
                     i++;
                 }
 
                 int val = i == 0 ? 0 : oldValues[i - 1] + 1;
-                writer.WriteLine("    " + name + " = " + val);
+                writer.WriteLine("    " + name + " = " + val + ",");
                 writer.WriteLine("}");
             }
 
@@ -102,7 +102,7 @@ namespace AssetsSystem.Editor
             {
                 writer.WriteLine("public enum EPrefabNames {");
                 int i = 0;
-                foreach (string item in oldNames)
+                foreach (var item in oldNames)
                 {
                     if (item != name)
                     {
@@ -127,7 +127,7 @@ namespace AssetsSystem.Editor
             {
                 writer.WriteLine("public enum EResourceNames {");
                 int i = 0;
-                foreach (string item in oldNames)
+                foreach (var item in oldNames)
                 {
                     writer.WriteLine("    " + item + " = " + oldValues[i] + ",");
                     i++;
@@ -151,7 +151,7 @@ namespace AssetsSystem.Editor
             {
                 writer.WriteLine("public enum EResourceNames {");
                 int i = 0;
-                foreach (string item in oldNames)
+                foreach (var item in oldNames)
                 {
                     if (item != name)
                     {
@@ -205,7 +205,7 @@ namespace AssetsSystem.Editor
             List<PathKeeper> list = Ways.PrefabsPathwaysSerializedData;
             list.Clear();
 
-            foreach (PrefabKeeper item in _prefabs)
+            foreach (var item in _prefabs)
             {
                 if (Enum.IsDefined(typeof(EPrefabNames), item.Name) && item.Prefab)
                 {
@@ -220,7 +220,7 @@ namespace AssetsSystem.Editor
             List<PathKeeper> list = Ways.ResourcesPathwaysSerializedData;
             list.Clear();
 
-            foreach (ResourceKeeper item in _resources)
+            foreach (var item in _resources)
             {
                 if (Enum.IsDefined(typeof(EResourceNames), item.Name) && item.Resource)
                 {

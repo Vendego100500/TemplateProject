@@ -2,6 +2,7 @@
 using System;
 using Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Utils;
 using static Utils.Utils;
@@ -14,10 +15,25 @@ namespace ViewSystem
         private CanvasScaler _canvasScaler;
         private float _currentAspectRatio;
 
-
-        public void Init(Camera inCamera)
+        protected override void Awake()
         {
-            _camera = inCamera;
+            base.Awake();
+            
+            Init(default, default);
+            
+            SceneManager.sceneLoaded += Init;
+        }
+
+        protected override void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= Init;
+            
+            base.OnDestroy();
+        }
+
+        private void Init(Scene oldScene, LoadSceneMode sceneMode)
+        {
+            _camera = Camera.main;
 
             Canvas canvas = GetComponentInChildren<Canvas>();
             if (!canvas)
@@ -35,6 +51,7 @@ namespace ViewSystem
         public void Tick()
         {
 #if UNITY_EDITOR
+            //TODO: update camera after scene changed
             float currentAspect = _camera.aspect;
             if (!Mathf.Approximately(currentAspect, _currentAspectRatio))
             {

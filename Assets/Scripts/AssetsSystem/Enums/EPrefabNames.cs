@@ -1,3 +1,4 @@
 public enum EPrefabNames {
-    MainMenu = 0,
+    Init = 0,
+    MainMenu = 1,
 }

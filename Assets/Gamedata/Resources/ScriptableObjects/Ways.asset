@@ -14,5 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _prefabsPathways:
   - Name: 0
-    Path: Assets/Resources/Prefabs/UI/Windows/MainMenu.prefab
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Windows/MainMenu.prefab
+  - Name: 1
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Windows/Init.prefab
   _resourcesPathways: []

@@ -159,20 +159,5 @@ namespace Utils
         }
 
         #endregion
-
-
-        #region Vector
-
-        public static bool IsZero(this Vector2 v)
-        {
-            return Mathf.Abs(v.x) < Mathf.Epsilon && Mathf.Abs(v.y) < Mathf.Epsilon;
-        }
-
-        public static bool IsZero(this Vector3 v)
-        {
-            return Mathf.Abs(v.x) < Mathf.Epsilon && Mathf.Abs(v.y) < Mathf.Epsilon && Mathf.Abs(v.z) < Mathf.Epsilon;
-        }
-
-        #endregion
     }
 }

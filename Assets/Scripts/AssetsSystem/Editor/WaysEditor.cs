@@ -13,7 +13,7 @@ namespace AssetsSystem.Editor
             base.OnInspectorGUI();
             
             Ways ways = (Ways)target;
-            foreach (PathKeeper path in ways.PrefabsPathwaysSerializedData)
+            foreach (var path in ways.PrefabsPathwaysSerializedData)
             {
                 EditorGUILayout.LabelField($"Name: {(EPrefabNames)path.Name}");
                 EditorGUI.indentLevel++;
@@ -23,7 +23,7 @@ namespace AssetsSystem.Editor
 
             EditorGUILayout.Space();
 
-            foreach (PathKeeper path in ways.ResourcesPathwaysSerializedData)
+            foreach (var path in ways.ResourcesPathwaysSerializedData)
             {
                 EditorGUILayout.LabelField($"Name: {(EResourceNames)path.Name}");
                 EditorGUI.indentLevel++;

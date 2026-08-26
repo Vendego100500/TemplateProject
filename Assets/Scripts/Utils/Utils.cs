@@ -145,6 +145,11 @@ namespace Utils
             return Less(value, 0.0f) ? -value : value;
         }
 
+        public static bool Compare(Vector2 value1, Vector2 value2)
+        {
+            return Compare(value1.x, value2.x) && Compare(value1.y, value2.y);
+        }
+
         public static bool Compare(Vector3 value1, Vector3 value2)
         {
             return Compare(value1.x, value2.x) && Compare(value1.y, value2.y) && Compare(value1.z, value2.z);

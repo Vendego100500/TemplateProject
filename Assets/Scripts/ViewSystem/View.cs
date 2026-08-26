@@ -1,4 +1,7 @@
-﻿using System;
+﻿
+using System;
+using Managers;
+using Managers.SoundManager;
 using UnityEngine;
 
 namespace ViewSystem
@@ -13,6 +16,17 @@ namespace ViewSystem
         public EPrefabNames Prefab => _prefab;
         public bool IgnoreStack => _ignoreStack;
         public bool IsActive { get; private set; }
+        public LocalizationTracker LocalizationTracker { get; private set; }
+        
+        protected SfxManager _sfxManager;
+
+
+        protected virtual void Awake()
+        {
+            LocalizationTracker = new LocalizationTracker(this);
+            _sfxManager = SfxManager.Instance;
+        }
+
 
         public void Open()
         {
@@ -21,10 +35,13 @@ namespace ViewSystem
 
         public void ReOpen()
         {
-            ActivateWindow();
+            ActivateWindow(true);
         }
         
-        public void Close() => Close(true);
+        public virtual void Close()
+        {
+            SceneTransition.Play(() => Close(true));
+        }
 
         internal void Close(bool removeFromStack)
         {
@@ -36,16 +53,14 @@ namespace ViewSystem
                 OnClose = null;
             }
         }
-        
-        public virtual void Tick() { }
 
-        private void ActivateWindow()
+        protected virtual void ActivateWindow(bool reopen = false)
         {
             gameObject.SetActive(true);
             IsActive = true;
         }
 
-        private void DeactivateWindow()
+        protected virtual void DeactivateWindow()
         {
             gameObject.SetActive(false);
             IsActive = false;

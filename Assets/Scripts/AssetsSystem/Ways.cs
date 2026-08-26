@@ -25,7 +25,7 @@ namespace AssetsSystem
                 _prefabsPathwaysDict = new Dictionary<EPrefabNames, string>();
                 if (_prefabsPathways.Count > 0)
                 {
-                    foreach (PathKeeper item in _prefabsPathways)
+                    foreach (var item in _prefabsPathways)
                     {
                         _prefabsPathwaysDict.Add((EPrefabNames)item.Name, item.Path);
                     }
@@ -50,7 +50,7 @@ namespace AssetsSystem
                 _resourcesPathwaysDict = new Dictionary<EResourceNames, string>();
                 if (_resourcesPathways.Count > 0)
                 {
-                    foreach (PathKeeper item in _resourcesPathways)
+                    foreach (var item in _resourcesPathways)
                     {
                         _resourcesPathwaysDict.Add((EResourceNames)item.Name, item.Path);
                     }
@@ -66,12 +66,12 @@ namespace AssetsSystem
         public void Log()
         {
             Debug.Log("PrefabsPathways");
-            foreach (KeyValuePair<EPrefabNames, string> pr in PrefabsPathways)
+            foreach (var pr in PrefabsPathways)
             {
                 Debug.LogWarning(pr.Key + " " + pr.Value);
             }
             Debug.Log("ResourcesPathways");
-            foreach (KeyValuePair<EResourceNames, string> pr in ResourcesPathways)
+            foreach (var pr in ResourcesPathways)
             {
                 Debug.LogWarning(pr.Key + " " + pr.Value);
             }

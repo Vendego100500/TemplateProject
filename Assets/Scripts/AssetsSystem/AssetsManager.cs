@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -164,12 +165,30 @@ namespace AssetsSystem
 
         public static T LoadAsset<T>(string path) where T : Object
         {
+#if UNITY_EDITOR
+            if (!IsResourcesPath(path) && path.StartsWith("Assets/", System.StringComparison.Ordinal))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+            }
+#endif
             return Resources.Load<T>(PathFromResources(path));
         }
 
         public static T[] LoadAllAssets<T>(string path) where T : Object
         {
+#if UNITY_EDITOR
+            if (!IsResourcesPath(path) && path.StartsWith("Assets/", System.StringComparison.Ordinal))
+            {
+                T asset = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+                return asset ? new[] { asset } : System.Array.Empty<T>();
+            }
+#endif
             return Resources.LoadAll<T>(PathFromResources(path));
+        }
+
+        public static bool IsResourcesPath(string fullPath)
+        {
+            return !string.IsNullOrEmpty(fullPath) && RegexResources.IsMatch(fullPath);
         }
 
         public static string PathFromResources(string fullPath)
