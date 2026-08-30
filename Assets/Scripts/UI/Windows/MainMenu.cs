@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEngine;
 #endif
 
-namespace UI.Windows
+namespace UI
 {
     public class MainMenu : View
     {

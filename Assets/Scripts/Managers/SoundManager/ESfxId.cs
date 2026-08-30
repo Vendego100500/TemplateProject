@@ -1,7 +1,7 @@
 
 using System;
 
-namespace Managers.SoundManager
+namespace Managers
 {
     public enum ESfxId
     {

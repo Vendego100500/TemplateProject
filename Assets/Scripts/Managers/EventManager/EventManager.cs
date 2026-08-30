@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using Utils;
 
-namespace Managers.EventManager
+namespace Managers
 {
     public class EventManager: Singleton<EventManager>
     {

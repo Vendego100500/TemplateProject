@@ -1,23 +1,19 @@
 ﻿
-using System.Collections.Generic;
 using UnityEngine;
 using Utils;
 using static AssetsSystem.AssetsManager;
 
 namespace Parameters
 {
-    public class DataAssets : Singleton<DataAssets>
+    public class DataAssets : Singleton<DataAssets>, IDataCatalog
     {
         private const string ParametersPath = "Parameters/";
+
+        public DataAssetGame Game { get; }
         
-        public readonly List<ScriptableObject> Parameters;
-        
-        public readonly DataAssetGame Game;
         
         private DataAssets()
         {
-            Parameters =  new List<ScriptableObject>();
-            
             Game = GetParameters<DataAssetGame>();
         }
 
@@ -28,8 +24,6 @@ namespace Parameters
             {
                 Debug.LogError($"Failed to load {typeof(T).Name}. Make sure it exists in {ParametersPath}.");
             }
-            
-            Parameters.Add(obj);
 
             return obj;
         }

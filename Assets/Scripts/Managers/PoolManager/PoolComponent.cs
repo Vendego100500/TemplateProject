@@ -1,11 +1,14 @@
 ﻿
-using Managers.PoolManager;
 using UnityEngine;
 
-namespace Core.Actors
+namespace Managers
 {
-    public abstract class Actor : MonoBehaviour, IPoolObject
+    public class PoolComponent : MonoBehaviour, IPoolObject
     {
+        protected GameObject _gameObject;
+        
+        #region IPoolObject
+
         public GameObject GameObject
         {
             get
@@ -15,22 +18,22 @@ namespace Core.Actors
                     _gameObject = gameObject;
                 }
 
-                return _gameObject;
+                return gameObject;
             }
         }
         public IPool Pool { get; private set; }
         public bool InPool { get; private set; }
-        public EntityId TemplateId { get; private set; }
-        
-        
-        private GameObject _gameObject;
+
+        public EntityId TemplateId => _templateId.IsValid() ? _templateId : gameObject.GetEntityId();
+
+        private EntityId _templateId;
         
 
-        public void Initialize(IPool pool, EntityId templateId)
+        public virtual void Initialize(IPool pool, EntityId templateId)
         {
             Pool = pool;
             InPool = true;
-            TemplateId = templateId;
+            _templateId = templateId;
             _gameObject = gameObject;
         }
         
@@ -44,9 +47,14 @@ namespace Core.Actors
         public virtual void BackToPool()
         {
             InPool = true;
-            transform.SetParent(Pool.Root);
-            transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
             _gameObject.SetActive(false);
+
+            if (Pool.Root)
+            {
+                transform.SetParent(Pool.Root);
+                transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            }
         }
+        #endregion
     }
 }

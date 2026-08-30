@@ -2,7 +2,6 @@
 using System.Collections;
 using DG.Tweening;
 using Managers;
-using Managers.SoundManager;
 using UnityEngine;
 
 namespace ViewSystem

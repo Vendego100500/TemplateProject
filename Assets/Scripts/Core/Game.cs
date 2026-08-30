@@ -2,6 +2,7 @@
 using System;
 using Input;
 using Managers;
+using Parameters;
 using Utils;
 using ViewSystem;
 
@@ -13,28 +14,31 @@ namespace Core
         public static void ApplicationQuitingInvoke() => ApplicationQuiting?.Invoke();
         
         public InputDevice InputDevice { get; }
+        public PlayerSave Save { get; }
+        public IGameFlow Flow { get; }
+        public IDataCatalog Catalog { get; }
 
         private readonly HUD _hud;
         private readonly GlobalTimer _globalTimer;
-        private readonly ViewManager _viewManager;
 
         private Game()
         {
             _hud = HUD.Instance;
             
-            InputDevice = new InputDevice();
-            
             _globalTimer = GlobalTimer.Instance;
             _globalTimer.Tick += Tick;
-            
-            _viewManager = ViewManager.Instance;
+
+            Catalog = DataAssets.Instance;
+            Save = new PlayerSave();
+            InputDevice = new InputDevice();
+            Flow = new GameFlow(ViewManager.Instance, Catalog);
         }
 
         public void StartGame()
         {
-            _globalTimer.Start();
+            _globalTimer.Start(Catalog.Game.Fps);
             
-            _viewManager.OpenWindow(EPrefabNames.MainMenu);
+            Flow.OpenMainMenu();
         }
 
         private void Tick(float deltaTime)

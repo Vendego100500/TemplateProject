@@ -1,9 +1,10 @@
-﻿using Managers.SoundManager;
+﻿
+using Managers;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace UI.Common
+namespace UI
 {
     public class MultiGraphicButton : Button
     {

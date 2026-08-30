@@ -1,8 +1,8 @@
 ﻿
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using AssetsSystem;
-using Managers;
 using UnityEngine;
 using Utils;
 
@@ -12,10 +12,10 @@ namespace ViewSystem
     {
         private const string HUDTag = "HUD";
         
+        private readonly Transform _transform;
         private readonly List<View> _views;
         private readonly List<WindowStackItem> _windowsStack;
-
-        public Transform Root { get; }
+        
         public View Current { get; private set; }
 
 
@@ -36,12 +36,17 @@ namespace ViewSystem
                 throw new ArgumentException($"Canvas not found under GameObject with tag '{HUDTag}'");
             }
 
-            Root = canvas.transform;
-            for (int i = Root.childCount - 1; i >= 0; i--)
+            _transform = canvas.transform;
+            for (int i = _transform.childCount - 1; i >= 0; i--)
             {
-                UnityEngine.Object.Destroy(Root.GetChild(i).gameObject);
+                UnityEngine.Object.Destroy(_transform.GetChild(i).gameObject);
             }
-            
+        }
+        
+
+        public IEnumerator WaitForLocalization()
+        {
+            yield return Current?.LocalizationTracker?.WaitForUpdate();
         }
 
         public void OpenInitView()
@@ -78,7 +83,7 @@ namespace ViewSystem
 
             window.OnClose += WindowOnClose;
 
-            SceneTransition.Play(() => OpenWindow(window, firstOpen));
+            ViewTransition.Play(() => OpenWindow(window, firstOpen));
             
             return window;
         }
@@ -92,7 +97,7 @@ namespace ViewSystem
                 return window;
             }
 
-            window = AssetsManager.Instance.Instantiate<T>(name, Root.transform);
+            window = AssetsManager.Instance.Instantiate<T>(name, _transform.transform);
             if (!window)
             {
                 throw new ArgumentException("Window not found: " + name);
@@ -166,7 +171,7 @@ namespace ViewSystem
                 return;
             }
 
-            SceneTransition.Play(() =>
+            ViewTransition.Play(() =>
             {
                 Current.OnClose += WindowOnClose;
                 Current.ReOpen();

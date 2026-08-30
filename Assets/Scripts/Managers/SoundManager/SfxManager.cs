@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utils;
 
-namespace Managers.SoundManager
+namespace Managers
 {
     public class SfxManager : MonoBehaviourSingleton<SfxManager>
     {
@@ -18,27 +18,38 @@ namespace Managers.SoundManager
         private readonly Dictionary<LoopKey, AudioSource> _loops = new();
         
         private bool _canPlay;
+        private SettingsSave _settings;
         
 
+        public void Bind(SettingsSave settings)
+        {
+            if (_settings != null)
+            {
+                _settings.OnSoundsChanged -= OnSoundsChanged;
+            }
+
+            _settings = settings;
+            _canPlay = _settings.IsSoundsEnabled();
+            _settings.OnSoundsChanged += OnSoundsChanged;
+        }
+        
         protected override void Awake()
         {
             base.Awake();
             
             LoadClips();
             WarmPool();
-            
-            _canPlay = SaveSystem.IsSoundsEnabled();
-            
-            SaveSystem.OnSoundsChanged += OnSoundsChanged;
-            
+
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
         protected override void OnDestroy()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
-            
-            SaveSystem.OnSoundsChanged -= OnSoundsChanged;
+            if (_settings != null)
+            {
+                _settings.OnSoundsChanged -= OnSoundsChanged;
+            }
             
             base.OnDestroy();
         }

@@ -1,7 +1,6 @@
 ﻿
 using System;
 using Managers;
-using Managers.SoundManager;
 using UnityEngine;
 
 namespace ViewSystem
@@ -40,7 +39,7 @@ namespace ViewSystem
         
         public virtual void Close()
         {
-            SceneTransition.Play(() => Close(true));
+            ViewTransition.Play(() => Close(true));
         }
 
         internal void Close(bool removeFromStack)

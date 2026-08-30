@@ -1,12 +1,13 @@
-﻿using System;
+﻿
+using System;
 using System.Collections;
-using Managers.SoundManager;
+using Managers;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace UI.Common
+namespace UI
 {
      public sealed class ToggleSwitch : MonoBehaviour, IPointerClickHandler
     {

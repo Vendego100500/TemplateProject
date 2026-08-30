@@ -1,5 +1,5 @@
 
-namespace Managers.EventManager
+namespace Managers
 {
     public enum EGameEvents 
     {

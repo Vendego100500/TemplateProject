@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Diagnostics;
-using Parameters;
 using UnityEngine;
 using Utils;
 
@@ -62,9 +61,9 @@ namespace Managers
         }
 
 
-        public void Start()
+        public void Start(int fps)
         {
-            _tickDuration = 1000f / Mathf.Max(1, DataAssets.Instance.Game.Fps);
+            _tickDuration = 1000f / Mathf.Max(1, fps);
             _tickDurationInSeconds = _tickDuration / 1000;
             _stopwatch.Start();
             

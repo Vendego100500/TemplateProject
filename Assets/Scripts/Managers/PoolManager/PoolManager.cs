@@ -1,11 +1,10 @@
 ﻿
 using System.Collections.Generic;
 using AssetsSystem;
-using Parameters;
 using UnityEngine;
 using Utils;
 
-namespace Managers.PoolManager
+namespace Managers
 {
     public interface IPool
     {
@@ -27,6 +26,7 @@ namespace Managers.PoolManager
     
     public interface IPoolParameters
     {
+        string Name { get; }
         List<IPoolObjectParameters> GetPoolObjects();
     }
     
@@ -42,29 +42,24 @@ namespace Managers.PoolManager
 
         protected override void Awake()
         {   
-            foreach (var dataAsset in DataAssets.Instance.Parameters)
-            {
-                if (dataAsset is not IPoolParameters poolParameters)
-                {
-                    continue;
-                }
-                
-                Transform root = AssetsManager.AddEmptyObject(transform, dataAsset.name).transform;
-                foreach (var poolObject in poolParameters.GetPoolObjects())
-                {
-                    if (poolObject.Prefab.GetComponent<IPoolObject>() == null)
-                    {
-                        Debug.LogError($"Pool object {dataAsset.name} has no IPoolObject component");
-                        continue;
-                    }
-                    Pool pool = new Pool(root, poolObject.Prefab, poolObject.Count);
-                    _pools.Add(poolObject.Prefab.GetEntityId(), pool);
-                }
-            }
-
             gameObject.SetActive(false);
             
             base.Awake();
+        }
+
+        public void AddObjectsPool(IPoolParameters source)
+        {
+            Transform root = AssetsManager.AddEmptyObject(transform, source.Name).transform;
+            foreach (var poolObject in source.GetPoolObjects())
+            {
+                if (poolObject.Prefab.GetComponent<IPoolObject>() == null)
+                {
+                    Debug.LogError($"Pool object {source.Name} has no IPoolObject component");
+                    continue;
+                }
+                Pool pool = new Pool(root, poolObject.Prefab, poolObject.Count);
+                _pools.Add(poolObject.Prefab.GetEntityId(), pool);
+            }
         }
 
         public static GameObject Get<T>(T obj) where T : IPoolObject

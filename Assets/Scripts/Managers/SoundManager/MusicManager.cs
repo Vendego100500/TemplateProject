@@ -1,12 +1,9 @@
 
 using System.Collections;
-using Core.SceneSystem;
-using Parameters;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Utils;
 
-namespace Managers.SoundManager
+namespace Managers
 {
     public class MusicManager : MonoBehaviourSingleton<MusicManager>
     {
@@ -15,7 +12,33 @@ namespace Managers.SoundManager
         private AudioSource _audioSource;
         private AudioClip _currentClip;
         private Coroutine _transitionRoutine;
+        private SettingsSave _settings;
+        
 
+        public void Bind(SettingsSave settings)
+        {
+            if (_settings != null)
+            {
+                _settings.OnMusicChanged -= OnMusicEnabledChanged;
+            }
+
+            _settings = settings;
+            _settings.OnMusicChanged += OnMusicEnabledChanged;
+            ApplyMusicEnabled(_settings.IsMusicEnabled());
+        }
+
+        public void Play(AudioClip clip)
+        {
+            if (!clip || clip == _currentClip)
+            {
+                return;
+            }
+
+            _currentClip = clip;
+            
+            StartTransition(TransitionToClip(clip));
+        }
+        
         protected override void Awake()
         {
             base.Awake();
@@ -25,17 +48,14 @@ namespace Managers.SoundManager
             _audioSource.playOnAwake = false;
             _audioSource.spatialBlend = 0f;
             _audioSource.volume = 1f;
-
-            SceneManager.sceneLoaded += OnSceneLoaded;
-            SaveSystem.OnMusicChanged += OnMusicEnabledChanged;
-
-            ApplyMusicEnabled(SaveSystem.IsMusicEnabled());
         }
 
         protected override void OnDestroy()
         {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SaveSystem.OnMusicChanged -= OnMusicEnabledChanged;
+            if (_settings != null)
+            {
+                _settings.OnMusicChanged -= OnMusicEnabledChanged;
+            }
 
             base.OnDestroy();
         }
@@ -57,34 +77,6 @@ namespace Managers.SoundManager
             }
 
             _audioSource.Pause();
-        }
-
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            PlayForScene(scene.name);
-        }
-
-        private void PlayForScene(string sceneName)
-        {
-            AudioClip clip = sceneName switch
-            {
-                "Main" => DataAssets.Instance.Game.Music,
-                _ => null
-            };
-
-            Play(clip);
-        }
-
-        private void Play(AudioClip clip)
-        {
-            if (!clip || clip == _currentClip)
-            {
-                return;
-            }
-
-            _currentClip = clip;
-            
-            StartTransition(TransitionToClip(clip));
         }
 
         private void StartTransition(IEnumerator routine)
@@ -114,7 +106,7 @@ namespace Managers.SoundManager
 
             _audioSource.clip = clip;
 
-            if (!SaveSystem.IsMusicEnabled())
+            if (!_settings.IsMusicEnabled())
             {
                 yield break;
             }

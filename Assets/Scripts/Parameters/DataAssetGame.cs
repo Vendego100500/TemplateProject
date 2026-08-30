@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Parameters
 {
-    [CreateAssetMenu(fileName = "GameParams", menuName = "Scriptable Object/Parameters/DataAssetGame", order = 51)]
+    [CreateAssetMenu(fileName = "Game", menuName = "Scriptable Object/Parameters/Game", order = 0)]
     public class DataAssetGame : ScriptableObject
     {
         [SerializeField] private int _fps;
