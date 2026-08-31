@@ -3,6 +3,7 @@ using System;
 using Input;
 using Managers;
 using Parameters;
+using UnityEngine;
 using Utils;
 using ViewSystem;
 
@@ -11,7 +12,7 @@ namespace Core
     public class Game : Singleton<Game>
     {
         public static event Action ApplicationQuiting;
-        public static void ApplicationQuitingInvoke() => ApplicationQuiting?.Invoke();
+        public static bool IsQuiting { get; private set; }
         
         public InputDevice InputDevice { get; }
         public PlayerSave Save { get; }
@@ -24,6 +25,7 @@ namespace Core
         private Game()
         {
             _hud = HUD.Instance;
+            _hud.ApplicationQuiting += () => ApplicationQuiting.InvokeSafe();;
             
             _globalTimer = GlobalTimer.Instance;
             _globalTimer.Tick += Tick;
@@ -52,7 +54,16 @@ namespace Core
         {
             base.OnApplicationQuit();
             
+            IsQuiting = true;
+            
             InputDevice.Dispose();
+        }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            ApplicationQuiting = null;
+            IsQuiting = false;
         }
     }
 }

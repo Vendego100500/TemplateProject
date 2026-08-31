@@ -7,13 +7,12 @@ namespace Utils
 	public class Singleton<T> where T : Singleton<T>
 	{
 		private static T _instance;
-		private static bool _isQuitting;
 	
 		public static T Instance 
 		{
 			get
 			{
-				if (_isQuitting)
+				if (Game.IsQuiting)
 				{
 					return null;
 				}
@@ -45,8 +44,9 @@ namespace Utils
 
 		protected virtual void OnApplicationQuit()
 		{
+			Game.ApplicationQuiting -= OnApplicationQuit;
+			
 			_instance = null;
-			_isQuitting = true;
 		}
 	}
 }

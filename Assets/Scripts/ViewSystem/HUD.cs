@@ -11,6 +11,8 @@ namespace ViewSystem
 {
     public class HUD : MonoBehaviourSingleton<HUD>
     {
+        public event Action ApplicationQuiting;
+
         private Camera _camera;
         private CanvasScaler _canvasScaler;
         private float _currentAspectRatio;
@@ -71,11 +73,9 @@ namespace ViewSystem
             };
         }
 
-        protected override void OnApplicationQuit()
+        private void OnApplicationQuit()
         {
-            base.OnApplicationQuit();
-
-            Game.ApplicationQuitingInvoke();
+            ApplicationQuiting.InvokeSafe();
         }
     }
 }

@@ -1,4 +1,4 @@
-
+using Core;
 using UnityEngine;
 
 namespace Utils
@@ -6,13 +6,12 @@ namespace Utils
     public abstract class MonoBehaviourSingleton<T> : MonoBehaviour where T : MonoBehaviourSingleton<T>
     {
         private static T _instance;
-        private static bool _isQuitting;
         
         public static T Instance
         {
             get
             {
-                if (_isQuitting)
+                if (Game.IsQuiting)
                 {
                     return null;
                 }
@@ -43,11 +42,6 @@ namespace Utils
             
             _instance = (T)this;
             DontDestroyOnLoad(gameObject);
-        }
-        
-        protected virtual void OnApplicationQuit()
-        {
-            _isQuitting = true;
         }
         
         protected virtual void OnDestroy()
