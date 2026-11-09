@@ -4,16 +4,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Utils;
 
 namespace Managers
 {
-    public class SfxManager : MonoBehaviourSingleton<SfxManager>
+    public class SfxManager : MonoBehaviour, ISound
     {
-        private const int PoolSize = 10;
         private const string SfxPath = "Audio/Sfx";
 
-        private readonly Dictionary<ESfxId, AudioClip> _clips = new();
+        private static Action<ESfxId> _onPlay;
+
+        [SerializeField] private AudioClip[] _clips;
+
         private readonly Queue<AudioSource> _pool = new();
         private readonly Dictionary<LoopKey, AudioSource> _loops = new();
         
@@ -21,7 +22,7 @@ namespace Managers
         private SettingsSave _settings;
         
 
-        public void Bind(SettingsSave settings)
+        public void Initialize(SettingsSave settings)
         {
             if (_settings != null)
             {
@@ -33,32 +34,37 @@ namespace Managers
             _settings.OnSoundsChanged += OnSoundsChanged;
         }
         
-        protected override void Awake()
+        private void Awake()
         {
-            base.Awake();
-            
-            LoadClips();
             WarmPool();
+
+            _onPlay = Play;
 
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
-        protected override void OnDestroy()
+        private void OnDestroy()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             if (_settings != null)
             {
                 _settings.OnSoundsChanged -= OnSoundsChanged;
             }
-            
-            base.OnDestroy();
         }
+
+        public static void InvokePlay(ESfxId id) => _onPlay?.Invoke(id);
 
         public void Play(ESfxId id)
         {
-            if (!_canPlay || !_clips.TryGetValue(id, out AudioClip clip))
+            AudioClip clip = GetClip(id);
+            Play(clip);
+        }
+        
+        public AudioSource Play(AudioClip clip)
+        {
+            if (!_canPlay || !clip)
             {
-                return;
+                return null;
             }
 
             AudioSource source = GetPooledSource();
@@ -69,19 +75,13 @@ namespace Managers
             source.Play();
             
             Routiner.Start(ReturnWhenDone(source));
-        }
-
-        public void PlayDeath(ESfxId sound)
-        {
-            if (_canPlay)
-            {
-                Play(sound);
-            }
+            return source;
         }
 
         public void PlayLoop(ESfxId id, MonoBehaviour owner)
         {
-            if (!_canPlay || !_clips.TryGetValue(id, out AudioClip clip))
+            AudioClip clip = GetClip(id);
+            if (!_canPlay || !clip)
             {
                 return;
             }
@@ -127,22 +127,44 @@ namespace Managers
             _loops.Clear();
         }
 
-        private void LoadClips()
+        private AudioClip GetClip(ESfxId id)
         {
-            foreach (AudioClip clip in Resources.LoadAll<AudioClip>($"{SfxPath}"))
+            int index = (byte)id;
+            return _clips != null && index < _clips.Length ? _clips[index] : null;
+        }
+
+#if UNITY_EDITOR
+        public int CacheClips()
+        {
+            int maxIndex = 0;
+            foreach (ESfxId id in Enum.GetValues(typeof(ESfxId)))
             {
-                if (Enum.TryParse(clip.name, out ESfxId id))
+                if (id != ESfxId.None)
                 {
-                    _clips[id] = clip;
+                    maxIndex = Mathf.Max(maxIndex, (byte)id);
                 }
             }
+
+            _clips = new AudioClip[maxIndex + 1];
+            int cachedCount = 0;
+            foreach (AudioClip clip in Resources.LoadAll<AudioClip>(SfxPath))
+            {
+                if (Enum.TryParse(clip.name, out ESfxId id) && id != ESfxId.None)
+                {
+                    _clips[(byte)id] = clip;
+                    cachedCount++;
+                }
+            }
+
+            return cachedCount;
         }
+#endif
 
         private void WarmPool()
         {
-            for (int i = 0; i < PoolSize; i++)
+            foreach (var source in GetComponents<AudioSource>())
             {
-                ReturnSource(CreateLoopSource());
+                ReturnSource(source);
             }
         }
 

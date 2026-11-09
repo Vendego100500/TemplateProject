@@ -1,35 +1,50 @@
+
 using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utils;
-using ViewSystem;
 
 namespace Managers
 {
-    public static class SceneLoader
+    public class SceneLoader
     {
-        private static readonly ITransitionEffect Effect = new EmptyTransitionEffect();
+        private static ITransitionEffect _effect;
 
-        public static void Load(string sceneName, Action onCovered = null, Action onLoaded = null)
+        private readonly TransitionRunner _runner;
+        private readonly ILocalization _localization;
+
+        public SceneLoader(ILocalization localization, TransitionRunner runner)
         {
-            TransitionRunner runner = TransitionRunner.Instance;
-            if (runner.IsBusy)
+            _runner = runner;
+            _localization = localization;
+        }
+
+        public void Load(string sceneName, Action onCovered = null, Action onLoaded = null, Action onCompleted = null,
+            Func<IEnumerator> pause = null)
+        {
+            if (_runner.IsBusy)
             {
                 LoadCovered(sceneName, onLoaded);
                 return;
             }
 
-            Routiner.Start(LoadRoutine(runner, sceneName, onCovered, onLoaded));
+            Routiner.Start(LoadRoutine(sceneName, onCovered, onLoaded, onCompleted, pause));
         }
 
-        private static IEnumerator LoadRoutine(TransitionRunner runner, string sceneName, Action onCovered, Action onLoaded)
+        private IEnumerator LoadRoutine(string sceneName, Action onCovered, Action onLoaded, Action onCompleted,
+            Func<IEnumerator> pause)
         {
-            yield return runner.Play(Effect, TransitionWork(runner, sceneName, onCovered, onLoaded));
+            yield return _runner.Play(GetEffect(), TransitionWork(sceneName, onCovered, onLoaded, pause), onCompleted);
         }
 
-        private static IEnumerator TransitionWork(TransitionRunner runner, string sceneName, Action onCovered, Action onLoaded)
+        private IEnumerator TransitionWork(string sceneName, Action onCovered, Action onLoaded, Func<IEnumerator> pause)
         {
+            if (pause != null)
+            {
+                yield return pause();
+            }
+
             onCovered.InvokeSafe();
 
             bool sceneLoaded = false;
@@ -40,10 +55,13 @@ namespace Managers
             });
 
             yield return new WaitUntil(() => sceneLoaded);
-            
-            runner.BringToFront();
-            
-            yield return ViewManager.Instance.WaitForLocalization();
+            yield return _localization.WaitForLocalization();
+        }
+
+        private static ITransitionEffect GetEffect()
+        {
+            _effect ??= new EmptyTransitionEffect();
+            return _effect;
         }
 
         private static void LoadCovered(string sceneName, Action onLoaded)

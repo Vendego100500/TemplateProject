@@ -34,6 +34,11 @@ namespace Managers
             return Instance.StartCoroutine(StartDelayedCoroutine(action, delay));
         }
 
+        public static Coroutine StartWhen(Action action, Func<bool> condition)
+        {
+            return Instance.StartCoroutine(StartWhenCoroutine(action, condition));
+        }
+
 
         private static IEnumerator StartOnNextFrameCoroutine(Action action)
         {
@@ -44,6 +49,7 @@ namespace Managers
         private static IEnumerator StartAfterFixedUpdateCoroutine(Action action)
         {
             yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
             action.Invoke();
         }
 
@@ -54,6 +60,12 @@ namespace Managers
             {
                 yield return wait.Current;
             }
+            action.Invoke();
+        }
+
+        private static IEnumerator StartWhenCoroutine(Action action, Func<bool> condition)
+        {
+            yield return new WaitUntil(condition);
             action.Invoke();
         }
 

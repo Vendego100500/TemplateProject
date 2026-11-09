@@ -1,135 +1,107 @@
 ﻿
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using AssetsSystem;
+using Managers;
 using UnityEngine;
 using Utils;
 
 namespace ViewSystem
 {
-    public class ViewManager : Singleton<ViewManager>
+    public class ViewManager : IViewManager
     {
-        private const string HUDTag = "HUD";
-        
-        private readonly Transform _transform;
+        private readonly Transform _windowsRoot;
+        private readonly Transform _popupsRoot;
         private readonly List<View> _views;
         private readonly List<WindowStackItem> _windowsStack;
+        private readonly WindowTransition _transition;
         
-        public View Current { get; private set; }
+        public event Action<Window> OnWindowChanged;
+        public event Action<Popup> OnShowPopup;
 
 
-        private ViewManager()
+        public ViewManager(Transform windowsRoot, Transform popupsRoot, ILocalization localization, TransitionRunner runner)
         {
             _views = new List<View>();
             _windowsStack = new List<WindowStackItem>();
+            _transition = new WindowTransition(localization, runner);
             
-            GameObject gameRoot = GameObject.FindWithTag(HUDTag);
-            if (!gameRoot)
-            {
-                throw new ArgumentException("GameRoot not found");
-            }
-
-            Canvas canvas = gameRoot.GetComponentInChildren<Canvas>();
-            if (!canvas)
-            {
-                throw new ArgumentException($"Canvas not found under GameObject with tag '{HUDTag}'");
-            }
-
-            _transform = canvas.transform;
-            for (int i = _transform.childCount - 1; i >= 0; i--)
-            {
-                UnityEngine.Object.Destroy(_transform.GetChild(i).gameObject);
-            }
-        }
-        
-
-        public IEnumerator WaitForLocalization()
-        {
-            yield return Current?.LocalizationTracker?.WaitForUpdate();
+            _windowsRoot = windowsRoot;
+            _popupsRoot = popupsRoot;
         }
 
-        public void OpenInitView()
+        public void Clean()
         {
-            View window = GetWindow<View>(EPrefabNames.Init, out bool firstOpen);
-            window.OnClose += WindowOnClose;
-            OpenWindow(window, firstOpen);
+            for (int i = _windowsRoot.childCount - 1; i >= 0; i--)
+            {
+                UnityEngine.Object.Destroy(_windowsRoot.GetChild(i).gameObject);
+            }
+            
+            for (int i = _popupsRoot.childCount - 1; i >= 0; i--)
+            {
+                UnityEngine.Object.Destroy(_popupsRoot.GetChild(i).gameObject);
+            }
         }
 
         public T ShowPopup<T>(EPrefabNames name, Action<T> preOpen = null)  where T : Popup
         {
-            T window = GetWindow<T>(name, out bool firstOpen);
+            T popup = GetView<T>(name, _popupsRoot, out bool firstOpen);
+            
+            preOpen.InvokeSafe(popup);
+            
+            popup.Open(firstOpen ? EOpenType.Open : EOpenType.Reopen);
+            
+            OnShowPopup.InvokeSafe(popup);
+            return popup;
+        }
+
+        public void OpenWindow(EPrefabNames name) => OpenWindow<Window>(name);
+
+        public T OpenWindow<T>(EPrefabNames name, Action<T> preOpen = null) where T : Window
+        {
+            T window = GetView<T>(name, _windowsRoot, out bool firstOpen);
+            
             preOpen.InvokeSafe(window);
-            
-            if (firstOpen)
-            {
-                window.Open();
-            }
-            else
-            {
-                window.ReOpen();
-            }
-            return window;
-        }
 
-        public View OpenWindow(EPrefabNames name)
-        {
-            return OpenWindow<View>(name);
-        }
-
-        public T OpenWindow<T>(EPrefabNames name) where T : View
-        {
-            T window = GetWindow<T>(name, out bool firstOpen);
-
-            window.OnClose += WindowOnClose;
-
-            ViewTransition.Play(() => OpenWindow(window, firstOpen));
+            _transition.Play(() => OpenWindow(window, firstOpen));
             
             return window;
         }
 
-        private T GetWindow<T>(EPrefabNames name, out bool firstOpen) where T : View
+        private T GetView<T>(EPrefabNames name, Transform root, out bool firstOpen) where T : View
         {
-            T window = _views.Find(item => item is T && !item.IsActive && item.Prefab == name && item.enabled) as T;
-            if (window)
+            T view = _views.Find(item => item is T && !item.IsActive && item.Prefab == name && item.enabled) as T;
+            if (view)
             {
                 firstOpen = false;
-                return window;
+                return view;
             }
 
-            window = AssetsManager.Instance.Instantiate<T>(name, _transform.transform);
-            if (!window)
+            view = AssetsManager.Instance.Instantiate<T>(name, root);
+            if (!view)
             {
                 throw new ArgumentException("Window not found: " + name);
             }
             
-            window.gameObject.SetActive(false);
-            _views.Add(window);
+            view.gameObject.SetActive(false);
+            _views.Add(view);
 
             firstOpen = true;
-            return window;
+            return view;
         }
 
-        private void OpenWindow<T>(T window, bool firstOpen) where T : View
+        private void OpenWindow<T>(T window, bool firstOpen) where T : Window
         {
-            SetupUIBeforeWindowOpen(window);
+            if (_windowsStack.Count == 0 || _windowsStack[^1].Instance != window)
+            {
+                SetupUIBeforeWindowOpen(window);
 
-            if (window.IgnoreStack)
-            {
-                _windowsStack.Clear();
-            }
-            _windowsStack.Add(new WindowStackItem { Name = window.Prefab, Instance = window });
-
-            if (firstOpen)
-            {
-                window.Open();
-            }
-            else
-            {
-                window.ReOpen();
+                _windowsStack.Add(new WindowStackItem { Name = window.Prefab, Instance = window });
             }
 
-            Current = window;
+            window.Open(firstOpen ? EOpenType.Open : EOpenType.Reopen, WindowOnClose, _transition.Play);
+
+            OnWindowChanged.InvokeSafe(window);
         }
 
         private void SetupUIBeforeWindowOpen(View window)
@@ -146,15 +118,15 @@ namespace ViewSystem
             window.transform.SetAsLastSibling();
         }
 
-        private void WindowOnClose(View obj, bool removeFromStack)
+        private void WindowOnClose(Window window, bool removeFromStack)
         {
-            Current = null;
             if (!removeFromStack)
             {
+                OnWindowChanged.InvokeSafe(null);
                 return;
             }
 
-            int idx = _windowsStack.FindLastIndex(item => item.Instance == obj);
+            int idx = _windowsStack.FindLastIndex(item => item.Name == window.Prefab);
             if (idx >= 0)
             {
                 _windowsStack.RemoveAt(idx);
@@ -162,25 +134,27 @@ namespace ViewSystem
 
             if (_windowsStack.Count <= 0)
             {
+                OnWindowChanged.InvokeSafe(null);
                 return;
             }
 
-            Current = _windowsStack[^1].Instance;
-            if (Current && Current.gameObject.activeSelf)
+            Window lastWindow = _windowsStack[^1].Instance;
+            OnWindowChanged.InvokeSafe(lastWindow);
+            
+            if (lastWindow && lastWindow.gameObject.activeSelf)
             {
                 return;
             }
 
-            ViewTransition.Play(() =>
+            _transition.Play(() =>
             {
-                Current.OnClose += WindowOnClose;
-                Current.ReOpen();
+                lastWindow.Open(EOpenType.Back);
             });
         }
 
         private class WindowStackItem
         {
-            public View Instance;
+            public Window Instance;
             public EPrefabNames Name;
         }
     }

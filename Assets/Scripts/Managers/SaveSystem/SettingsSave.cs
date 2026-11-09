@@ -11,6 +11,7 @@ namespace Managers
         private const string MusicKey = "Game.Music";
         private const string SoundsKey = "Game.Sounds";
 
+        public event Action OnLanguageChanged;
         public event Action<bool> OnMusicChanged;
         public event Action<bool> OnSoundsChanged;
 
@@ -23,6 +24,8 @@ namespace Managers
         {
             PlayerPrefs.SetInt(LanguagePrefix, language);
             PlayerPrefs.Save();
+            
+            OnLanguageChanged.InvokeSafe();
         }
 
         public bool IsMusicEnabled()

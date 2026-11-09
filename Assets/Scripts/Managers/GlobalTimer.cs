@@ -7,7 +7,7 @@ using Utils;
 
 namespace Managers
 {
-    public class GlobalTimer : Singleton<GlobalTimer>
+    public class GlobalTimer
     {
         private const int MaxUpdatePerFrame = 3;
 
@@ -27,11 +27,11 @@ namespace Managers
 
         public event Action<float> Tick;
 
-        private GlobalTimer()
+        public GlobalTimer(float syncTime)
         {
-            _serverUtc = DateTime.Now;
+            _serverUtc = DateTime.UtcNow;
             _stopwatch = new Stopwatch();
-            _syncTime =  Time.unscaledTime;
+            _syncTime = syncTime;
         }
 
         public static long ConvertToUnixTimestampMs(DateTime date)

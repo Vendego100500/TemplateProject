@@ -1,8 +1,9 @@
 ﻿
 using System.Collections;
+using System.Collections.Generic;
 using Managers;
-using Parameters;
 using UnityEngine;
+using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using ViewSystem;
 
@@ -10,48 +11,51 @@ namespace Core
 {
     public class InitGame : MonoBehaviour
     {
+        [SerializeField] private HUD _hud;
+        [SerializeField] private SplashScreen _splashScreen;
+        [SerializeField] private SfxManager _sfxManager;
+        [SerializeField] private MusicManager _musicManager;
+        
+        
         private void Awake()
         {
-            var game = Game.Instance;
-            SettingsSave settings = game.Save.Settings;
-            MusicManager.Instance.Bind(settings);
-            SfxManager.Instance.Bind(settings);
+            DontDestroyOnLoad(_sfxManager);
+            DontDestroyOnLoad(_musicManager);
+        }
+
+        private IEnumerator Start()
+        {
+            yield return null;
             
-            ViewManager.Instance.OpenInitView();
-        }
-
-        private void Start()
-        {
-            Routiner.Start(StartGameCoroutine());
-        }
-
-        private static IEnumerator StartGameCoroutine()
-        {
             Game game = Game.Instance;
-            IDataCatalog catalog = game.Catalog;
+            GameInitializer gameInitializer = GameInitializer.Instance;
+            gameInitializer.Initialize(game, _sfxManager, _musicManager, _hud);
             
-            yield return new WaitUntil(() => catalog.Initialized);
+            InitializerStage initializer = gameInitializer.Initializer;
+            yield return new WaitUntil(() => initializer.Catalog >= ECatalogStage.GameDataAssetLoadingEnd);
             
-            Application.targetFrameRate = catalog.Game.Fps;
-
-            yield return LocalizationSettings.InitializationOperation;
-
-            PlayerSave save = game.Save;
+            Application.targetFrameRate = game.Catalog.Game.TargetFrameRate;
             
-            int currentLanguage = save.Settings.GetLanguage();
-            var locales = LocalizationSettings.AvailableLocales.Locales;
+            yield return new WaitUntil(() => initializer.Game >= EGameStage.LocalizationInitializationEnd);
+            
+            SettingsSave settings = game.Save.Settings;
+            int currentLanguage = settings.GetLanguage();
+            List<Locale> locales = LocalizationSettings.AvailableLocales.Locales;
             if (locales.Count > 0)
             {
                 int languageIndex = Mathf.Clamp(currentLanguage, 0, locales.Count - 1);
                 if (languageIndex != currentLanguage)
                 {
-                    save.Settings.SetLanguage(languageIndex);
+                    settings.SetLanguage(languageIndex);
                 }
-
+                
                 LocalizationSettings.SelectedLocale = locales[languageIndex];
             }
-
-            game.Flow.ToMain(onLoaded: game.StartGame);
+            
+            yield return new WaitUntil(() => initializer.Game >= EGameStage.Initialized);
+            yield return new WaitUntil(() => initializer.SplashScreen >= ESplashScreen.Disabled);
+            
+            game.Flow.ToMain(onLoaded: game.StartGame, onCompleted: () => initializer.Game = EGameStage.GameStarted);
         }
     }
 }

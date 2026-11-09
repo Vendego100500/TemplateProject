@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using Input.Buttons;
-using UnityEditor;
 using UnityEngine.InputSystem;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Input
 {
@@ -23,9 +26,6 @@ namespace Input
         public InputDevice()
         {
             _actions = new InputActions();
-            _actions.Enable();
-            _actions.LevelEditor.Disable();
-            _actions.Player.Disable();
 
             var buttons = new List<IButton>(8);
             
@@ -36,6 +36,13 @@ namespace Input
 #if UNITY_EDITOR
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 #endif
+        }
+
+        public void Activate()
+        {
+            _actions.Enable();
+            _actions.LevelEditor.Disable();
+            _actions.Player.Disable();
         }
 
         public void Tick()

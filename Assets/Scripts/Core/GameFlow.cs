@@ -2,7 +2,7 @@
 using System;
 using Managers;
 using Parameters;
-using UnityEngine;
+using UI.Popups;
 using ViewSystem;
 
 namespace Core
@@ -10,47 +10,48 @@ namespace Core
     public static class GameScenes
     {
         public const string Main = "Main";
-        public const string Level = "Level";
     }
     
-    public class GameFlow : IGameFlow
+    public class GameFlow
     {
-        private readonly ViewManager _views;
+        private readonly IViewManager _viewManager;
+        private readonly IMusic _music;
         private readonly IDataCatalog _catalog;
+        private readonly SceneLoader _sceneLoader;
+        
 
-        public GameFlow(ViewManager views, IDataCatalog catalog)
+        public GameFlow(IViewManager viewManager, ILocalization localization, IDataCatalog catalog, 
+           TransitionRunner runner, IMusic music)
         {
-            _views = views;
             _catalog = catalog;
+            _music = music;
+            _sceneLoader = new SceneLoader(localization, runner);
+            _viewManager = viewManager;
         }
 
-        public void ToMain(Action onCovered = null, Action onLoaded = null)
+        public void ToMain(Action onCovered = null, Action onLoaded = null, Action onCompleted = null, bool showAds = false)
         {
-            SceneLoader.Load(GameScenes.Main, onCovered, () =>
+            _sceneLoader.Load(GameScenes.Main, onCovered, () =>
             {
-                MusicManager.Instance.Play(_catalog.Game.Music);
+                _music.Play(_catalog.Game.Music);
                 onLoaded?.Invoke();
-            });
-        }
-
-        public void ToLevel(Action onCovered = null, Action onLoaded = null)
-        {
-            AudioClip levelMusic = null;
-            SceneLoader.Load(GameScenes.Level, onCovered, () =>
-            {
-                MusicManager.Instance.Play(levelMusic);
-                onLoaded?.Invoke();
-            });
+            },
+            onCompleted);
         }
 
         public void OpenMainMenu()
         {
-            _views.OpenWindow(EPrefabNames.MainMenu);
+            _viewManager.OpenWindow(EPrefabNames.MainMenu);
         }
 
         public void ShowSettings()
         {
-            //_views.ShowPopup<SettingsPopup>(EPrefabNames.Settings);
+            _viewManager.ShowPopup<SettingsPopup>(EPrefabNames.Settings);
+        }
+
+        public void ShowMessage(DataAssetMessage message, Action callback = null)
+        {
+            _viewManager.ShowPopup<MessagePopup>(EPrefabNames.Message, popup => popup.Init(message, callback));
         }
     }
 }

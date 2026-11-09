@@ -27,19 +27,11 @@ namespace Utils
 				{
 					throw new InvalidOperationException($"Could not create singleton instance for {typeof(T).Name}.");
 				}
-				_instance.Init();
+				
+				Game.ApplicationQuiting += _instance.OnApplicationQuit;
 				
 				return _instance;
 			}
-		}
-
-		public bool Initialized { get; private set; }
-
-		protected virtual void Init()
-		{
-			Initialized = true;
-
-			Game.ApplicationQuiting += OnApplicationQuit;
 		}
 
 		protected virtual void OnApplicationQuit()

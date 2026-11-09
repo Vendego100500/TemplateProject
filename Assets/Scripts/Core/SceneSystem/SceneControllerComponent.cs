@@ -1,13 +1,12 @@
 
 using System;
-using System.Collections.Generic;
-using AssetsSystem;
 using Input;
 using Managers;
 using Parameters;
+using UI;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 using Utils;
+using ViewSystem;
 
 namespace Core.SceneSystem
 {
@@ -22,20 +21,28 @@ namespace Core.SceneSystem
         public Camera Camera { get; private set; }
         public InputDevice InputDevice { get; private set; }
         public PlayerSave Save { get; private set; }
-        public IGameFlow Flow { get; private set; }
+        public GameFlow Flow { get; private set; }
         public IDataCatalog Catalog { get; private set; }
+        public IViewManager ViewManager { get; private set; }
+        public ISound Sound { get; private set; }
+        public CoinBalance CoinBalance { get; private set; }
 
-        public SpriteRenderer Background => _background;
+        private GlobalTimer _globalTimer;
         
 
         private void Awake()
         {
             Camera = Camera.main;
             
+            _globalTimer = Game.Instance.GlobalTimer;
+            
             InputDevice = Game.Instance.InputDevice;
             Save = Game.Instance.Save;
             Flow = Game.Instance.Flow;
             Catalog = Game.Instance.Catalog;
+            ViewManager = Game.Instance.ViewManager;
+            Sound = Game.Instance.SoundManager;
+            CoinBalance = Game.Instance.CoinBalance;
 
             _controller = CreateSession();
         }
@@ -44,19 +51,14 @@ namespace Core.SceneSystem
         {
             OpenLevel();
 
-            GlobalTimer.Instance.Tick += Tick;
+            _globalTimer.Tick += Tick;
         }
 
         private void OnDestroy()
         {
-            if (GlobalTimer.Instance != null)
-            {
-                GlobalTimer.Instance.Tick -= Tick;
-            }
+            _globalTimer.Tick -= Tick;
 
             _controller?.OnDestroy();
-            
-            Clear();
         }
 
         public Vector2 ScreenToWorldPoint(Vector2 screenPosition)
@@ -78,15 +80,14 @@ namespace Core.SceneSystem
             }
         }
 
-        private void OpenLevel()
+        private void LateUpdate()
         {
-            Clear();
-
-            OnLevelLoaded.InvokeSafe();
+            _controller.OnLateUpdate(Time.deltaTime);
         }
 
-        private void Clear()
+        private void OpenLevel()
         {
+            OnLevelLoaded.InvokeSafe();
         }
     }
 }

@@ -1,76 +1,58 @@
 ﻿
 using System;
 using Core;
+using Managers;
+using UI;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Utils;
-using static Utils.Utils;
 
 namespace ViewSystem
 {
-    public class HUD : MonoBehaviourSingleton<HUD>
+    public class HUD : MonoBehaviour
     {
+        [SerializeField] private TopBar _topBar;
+        [SerializeField] private Transform _windows;
+        [SerializeField] private Transform _popups;
+        [SerializeField] private Image _background;
+        [SerializeField] private TransitionRunner _transitionRunner;
+        
+        public CoinBalance CoinBalance => _topBar.CoinBalance;
+        public Transform Windows => _windows;
+        public Transform Popups => _popups;
+        public TransitionRunner TransitionRunner => _transitionRunner;
+        
         public event Action ApplicationQuiting;
+        
+        private IViewManager _viewManager;
 
-        private Camera _camera;
-        private CanvasScaler _canvasScaler;
-        private float _currentAspectRatio;
 
-        protected override void Awake()
+        private void OnDestroy()
         {
-            base.Awake();
-            
-            Init(default, default);
-            
-            SceneManager.sceneLoaded += Init;
+            _viewManager.OnWindowChanged -= OnWindowChanged;
         }
 
-        protected override void OnDestroy()
+        public void Initialize(GameFlow flow, IViewManager viewManager)
         {
-            SceneManager.sceneLoaded -= Init;
+            _viewManager = viewManager;
+            _viewManager.OnWindowChanged += OnWindowChanged;
             
-            base.OnDestroy();
+            _topBar.Initialize(flow, viewManager);
+            
+            DontDestroyOnLoad(gameObject);
         }
 
-        private void Init(Scene oldScene, LoadSceneMode sceneMode)
-        {
-            _camera = Camera.main;
+        public void EnableTopBar(bool value) => _topBar.gameObject.SetActive(value);
 
-            Canvas canvas = GetComponentInChildren<Canvas>();
-            if (!canvas)
+        private void OnWindowChanged(Window window)
+        {
+            if (!window)
             {
-                throw new ArgumentException("HUD canvas not found");
+                return;
             }
-            
-            _canvasScaler =  canvas.GetComponent<CanvasScaler>();
-            if (!_canvasScaler)
-            {
-                throw new ArgumentException($"Canvas {canvas} must contains CanvasScaler");
-            }
-        }
 
-        public void Tick()
-        {
-#if UNITY_EDITOR
-            //TODO: update camera after scene changed
-            float currentAspect = _camera.aspect;
-            if (!Mathf.Approximately(currentAspect, _currentAspectRatio))
-            {
-                SetScaleMatching(currentAspect);
-            }
-#endif
-        }
-
-        private void SetScaleMatching(float aspectRatio)
-        {
-            _currentAspectRatio = aspectRatio;
-            _canvasScaler.matchWidthOrHeight = _currentAspectRatio switch
-            {
-                >= ASPECT_RATIO_16x9 => 1,
-                >= ASPECT_RATIO_4x3 => 0,
-                _ => _canvasScaler.matchWidthOrHeight
-            };
+            _background.enabled = window.Background; 
+            _background.sprite = window.Background;
         }
 
         private void OnApplicationQuit()

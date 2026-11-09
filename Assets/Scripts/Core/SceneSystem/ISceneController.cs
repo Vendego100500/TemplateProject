@@ -3,7 +3,8 @@ namespace Core.SceneSystem
 {
     public interface ISceneController
     {
-        public void OnDestroy();
-        public bool Tick(float deltaTime);
+        void OnDestroy();
+        bool Tick(float deltaTime);
+        void OnLateUpdate(float deltaTime);
     }
 }

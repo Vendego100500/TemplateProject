@@ -1,9 +1,12 @@
 
 using System;
+using System.Collections;
 using Input;
 using Managers;
 using Parameters;
+using UI;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 using Utils;
 using ViewSystem;
 
@@ -14,40 +17,76 @@ namespace Core
         public static event Action ApplicationQuiting;
         public static bool IsQuiting { get; private set; }
         
-        public InputDevice InputDevice { get; }
+        public GlobalTimer GlobalTimer { get; }
+        public InputDevice InputDevice { get;}
         public PlayerSave Save { get; }
-        public IGameFlow Flow { get; }
-        public IDataCatalog Catalog { get; }
+        public DataCatalog Catalog { get; }
+        public GameFlow Flow { get; private set; }
+        public IViewManager ViewManager { get; private set; }
+        public SoundManager SoundManager { get; private set; }
+        public CoinBalance CoinBalance => _hud.CoinBalance;
 
-        private readonly HUD _hud;
-        private readonly GlobalTimer _globalTimer;
+        private HUD _hud;
+
 
         private Game()
         {
-            _hud = HUD.Instance;
-            _hud.ApplicationQuiting += () => ApplicationQuiting.InvokeSafe();;
+            GlobalTimer = new GlobalTimer(Time.unscaledTime);
+            GlobalTimer.Tick += Tick;
             
-            _globalTimer = GlobalTimer.Instance;
-            _globalTimer.Tick += Tick;
-
-            Catalog = DataAssets.Instance;
+            Catalog = new DataCatalog();
             Save = new PlayerSave();
             InputDevice = new InputDevice();
-            Flow = new GameFlow(ViewManager.Instance, Catalog);
+        }
+
+        public IEnumerator Initialize(HUD hud, SoundManager soundManager, InitializerStage initializer)
+        {
+            initializer.Game = EGameStage.Started;
+            
+            yield return new WaitUntil(() => initializer.Catalog >= ECatalogStage.GameDataAssetLoadingEnd);
+            
+            initializer.Game = EGameStage.FirstStageBegin;
+            
+            SoundManager = soundManager;
+            
+            _hud = hud;
+            _hud.ApplicationQuiting += () => ApplicationQuiting.InvokeSafe();
+            yield return null;
+            
+            ILocalization localization = new LocalizationManager(Save.Settings);
+            ViewManager = new ViewManager(_hud.Windows, _hud.Popups, localization, _hud.TransitionRunner);
+            ViewManager.OnWindowChanged += localization.OnWindowChanged;
+            
+            Flow = new GameFlow(ViewManager, localization, Catalog, _hud.TransitionRunner, SoundManager);
+            
+            initializer.Game = EGameStage.FirstStageEnd;
+            
+            yield return LocalizationSettings.InitializationOperation;
+            
+            initializer.Game = EGameStage.LocalizationInitializationEnd;
+            
+            yield return new WaitUntil(() => initializer.Catalog >= ECatalogStage.Initialized);
+            
+            _hud.Initialize(Flow, ViewManager);
+            
+            initializer.Game = EGameStage.Initialized;
         }
 
         public void StartGame()
         {
-            _globalTimer.Start(Catalog.Game.Fps);
+            _hud.EnableTopBar(true);
             
+            InputDevice.Activate();
+            
+            GlobalTimer.Start(Catalog.Game.TickRate);
+            
+            ViewManager.Clean();
             Flow.OpenMainMenu();
         }
 
         private void Tick(float deltaTime)
         {
             InputDevice.Tick();
-            
-            _hud.Tick();
         }
 
         protected override void OnApplicationQuit()

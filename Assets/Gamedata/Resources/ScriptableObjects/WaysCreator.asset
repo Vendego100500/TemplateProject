@@ -13,8 +13,16 @@ MonoBehaviour:
   m_Name: WaysCreator
   m_EditorClassIdentifier: 
   _prefabs:
-  - Prefab: {fileID: 6093572743896975868, guid: 9486a66a790f4004ead96f13951d7f8e, type: 3}
+  - Prefab: {fileID: 6093572743896975868, guid: 24f317c87a9730a448220c8f9c851601, type: 3}
     Name: 0
   - Prefab: {fileID: 6093572743896975868, guid: 24f317c87a9730a448220c8f9c851601, type: 3}
     Name: 1
+  - Prefab: {fileID: 6093572743896975868, guid: 7c0aa2ce21ecf714a87cfdc457045fff, type: 3}
+    Name: 2
+  - Prefab: {fileID: 6093572743896975868, guid: 5d367c39c3291e0409e201b0dc59adf7, type: 3}
+    Name: 3
+  - Prefab: {fileID: 7230207946747797026, guid: b41e7c9a6d324f8eaf1053c2789bd640, type: 3}
+    Name: 4
+  - Prefab: {fileID: 1535244092988708399, guid: 9e5dbba0982ccbf459e072032df79ead, type: 3}
+    Name: 5
   _resources: []

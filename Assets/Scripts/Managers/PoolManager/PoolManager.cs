@@ -1,4 +1,5 @@
 ﻿
+using System.Collections;
 using System.Collections.Generic;
 using AssetsSystem;
 using UnityEngine;
@@ -20,20 +21,15 @@ namespace Managers
         EntityId TemplateId { get; }
 
         void Initialize(IPool pool, EntityId templateId);
-        GameObject GetFromPool();
+        void GetFromPool(bool activate);
         void BackToPool();
-    }
-    
-    public interface IPoolParameters
-    {
-        string Name { get; }
-        List<IPoolObjectParameters> GetPoolObjects();
     }
     
     public interface IPoolObjectParameters
     {
         GameObject Prefab { get; }
         int Count { get; }
+        int Steps { get; }
     }
     
     public class PoolManager : MonoBehaviourSingleton<PoolManager>
@@ -47,22 +43,31 @@ namespace Managers
             base.Awake();
         }
 
-        public void AddObjectsPool(IPoolParameters source)
+        public IEnumerator AddObjectsPool(IPoolObjectParameters source)
         {
-            Transform root = AssetsManager.AddEmptyObject(transform, source.Name).transform;
-            foreach (var poolObject in source.GetPoolObjects())
+            Transform root = AssetsManager.AddEmptyObject(transform, source.Prefab.name).transform;
+            if (source.Prefab.GetComponent<IPoolObject>() == null)
             {
-                if (poolObject.Prefab.GetComponent<IPoolObject>() == null)
-                {
-                    Debug.LogError($"Pool object {source.Name} has no IPoolObject component");
-                    continue;
-                }
-                Pool pool = new Pool(root, poolObject.Prefab, poolObject.Count);
-                _pools.Add(poolObject.Prefab.GetEntityId(), pool);
+                Debug.LogError($"Pool object {source.Prefab.name} has no IPoolObject component");
+                yield return null;
+            }
+
+            int max = Mathf.CeilToInt((float)source.Count / source.Steps);
+            int count = Mathf.Min(source.Count, max);
+            Pool pool = new Pool(root, source.Prefab, count);
+            _pools.Add(source.Prefab.GetEntityId(), pool);
+            
+            while (count < source.Count)
+            {
+                yield return null;
+                
+                int n = Mathf.Min(source.Count - count, max);
+                count += n;
+                pool.AddNewObjects(n);
             }
         }
 
-        public static GameObject Get<T>(T obj) where T : IPoolObject
+        public T Get<T>(T obj, Transform parent, bool activate = true) where T : IPoolObject
         {
             if (!Instance._pools.TryGetValue(obj.TemplateId, out Pool pool))
             {
@@ -70,22 +75,39 @@ namespace Managers
                 pool = new Pool(root, obj.GameObject);
                 Instance._pools.Add(obj.TemplateId, pool);
             }
-            
-            return pool.GetNextFree();
+
+            return GetNext<T>(pool, parent, activate);
         }
 
-        public static T Get<T>(T obj, Transform parent) where T : IPoolObject
+        public void Get<T>(T obj, Transform parent, int count, List<T> output, bool activate = true) where T : IPoolObject
         {
-            Transform transform = Get(obj).transform;
-            transform.SetParent(parent, false);
-            transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-            transform.localScale = Vector3.one;
-            return transform.GetComponent<T>();
+            output.Clear();
+            if (!Instance._pools.TryGetValue(obj.TemplateId, out Pool pool))
+            {
+                Transform root = AssetsManager.AddEmptyObject(Instance.transform, obj.GameObject.name).transform;
+                pool = new Pool(root, obj.GameObject);
+                Instance._pools.Add(obj.TemplateId, pool);
+            }
+
+            if (output.Capacity < count)
+            {
+                output.Capacity = count;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                output.Add(GetNext<T>(pool, parent, activate));
+            }
         }
 
-        public static T2 Get<T, T2>(T obj) where T : IPoolObject
+        private static T GetNext<T>(Pool pool, Transform parent, bool activate) where T : IPoolObject
         {
-            return Get(obj).GetComponent<T2>();
+            IPoolObject poolObject = pool.GetNextFree(activate);
+            Transform item = poolObject.GameObject.transform;
+            item.SetParent(parent, false);
+            item.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            item.localScale = Vector3.one;
+            return (T)poolObject;
         }
 
 
@@ -101,43 +123,48 @@ namespace Managers
                 _template = template;
                 _objects = new List<IPoolObject>(size);
                 _root = AssetsManager.AddEmptyObject(parent, _template.ToString()).transform;
-                for (int i = 0; i < size; i++)
-                {
-                    AddNewObject();
-                }
                 _current = -1;
+                
+                AddNewObjects(size);
             }
 
             public Transform Root => _root;
             public GameObject Template => _template;
 
-            public GameObject GetNextFree()
+
+            public IPoolObject GetNextFree(bool activate)
             {
-                int next = _current + 1;
-                for (int i = next; i <= _objects.Count; i++)
+                int count = _objects.Count;
+                for (int offset = 1; offset <= count; offset++)
                 {
-                    // Reached the end of the list
-                    if (i == _objects.Count)
+                    int i = (_current + offset) % count;
+                    IPoolObject poolObject = _objects[i];
+                    if (!poolObject.InPool)
                     {
-                        i = 0;
+                        continue;
                     }
 
-                    // All objects are busy
-                    if (i == _current)
-                    {
-                        break;
-                    }
-
-                    if (_objects[i].InPool)
-                    {
-                        _current = i;
-                        return _objects[i].GetFromPool();
-                    }
+                    _current = i;
+                    return Activate(poolObject, activate);
                 }
 
-                _current = _objects.Count;
+                IPoolObject added = AddNewObject();
+                _current = _objects.Count - 1;
+                return Activate(added, activate);
+            }
 
-                return AddNewObject().GetFromPool();
+            public void AddNewObjects(int count)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    AddNewObject();
+                }
+            }
+
+            private static IPoolObject Activate(IPoolObject poolObject, bool activate)
+            {
+                poolObject.GetFromPool(activate);
+                return poolObject;
             }
 
             private IPoolObject AddNewObject()

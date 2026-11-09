@@ -23,10 +23,12 @@ namespace Managers
 
         public void Reset()
         {
+#if UNITY_EDITOR || DEVELOPMENT
+            PlayerPrefs.DeleteAll();
+#else
             Progress.Clear();
-            Economy.Clear();
+#endif
             PlayerPrefs.Save();
-            
             OnReset.InvokeSafe();
         }
     }

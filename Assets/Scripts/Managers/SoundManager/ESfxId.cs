@@ -1,16 +1,13 @@
 
-using System;
-
 namespace Managers
 {
-    public enum ESfxId
+    public enum ESfxId : byte
     {
         // UI
         ui_button_click,
         ui_popup_open,
         ui_popup_close,
         
-        
-        None = Int32.MaxValue,
+        None = byte.MaxValue,
     }
 }

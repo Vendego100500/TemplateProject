@@ -25,14 +25,16 @@ namespace Input.Buttons
         {
             if (_pressed)
             {
-                OnPress.InvokeSafe();
-
                 if (State.IsReleased)
                 {
                     OnDown.InvokeSafe();
                     State = ButtonState.DownState;
+                    
+                    OnPress.InvokeSafe();
                     return;
                 }
+                
+                OnPress.InvokeSafe();
 
                 float deltaTime = Time.time - _pressTime;
                 if (deltaTime > SingleClickDeltaMs)

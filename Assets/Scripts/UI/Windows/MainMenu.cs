@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace UI
 {
-    public class MainMenu : View
+    public class MainMenu : Window
     {
         public void OnStart()
         {

@@ -16,5 +16,13 @@ MonoBehaviour:
   - Name: 0
     Path: Assets/Gamedata/Resources/Prefabs/UI/Windows/MainMenu.prefab
   - Name: 1
-    Path: Assets/Gamedata/Resources/Prefabs/UI/Windows/Init.prefab
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Windows/MainMenu.prefab
+  - Name: 2
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Popups/Settings.prefab
+  - Name: 3
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Popups/Message.prefab
+  - Name: 4
+    Path: Assets/Gamedata/Resources/Prefabs/SpritePiece.prefab
+  - Name: 5
+    Path: Assets/Gamedata/Resources/Prefabs/UI/Coin.prefab
   _resourcesPathways: []

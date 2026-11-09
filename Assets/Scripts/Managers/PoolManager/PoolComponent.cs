@@ -36,12 +36,14 @@ namespace Managers
             _templateId = templateId;
             _gameObject = gameObject;
         }
-        
-        public virtual GameObject GetFromPool()
+
+        public virtual void GetFromPool(bool activate = true)
         {
             InPool = false;
-            _gameObject.SetActive(true);
-            return _gameObject;
+            if (activate)
+            {
+                _gameObject.SetActive(true);
+            }
         }
 
         public virtual void BackToPool()

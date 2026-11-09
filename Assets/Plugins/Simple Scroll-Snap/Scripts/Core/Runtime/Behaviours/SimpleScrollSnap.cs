@@ -587,11 +587,7 @@ namespace DanielLochner.Assets.SimpleScrollSnap
         }
         private void SnapToPanel()
         {
-            float xOffset = (movementType == MovementType.Free || movementAxis == MovementAxis.Horizontal) ? Viewport.rect.width  / 2f : 0f;
-            float yOffset = (movementType == MovementType.Free || movementAxis == MovementAxis.Vertical)   ? Viewport.rect.height / 2f : 0f;
-            Vector2 offset = new Vector2(xOffset, yOffset);
-
-            Vector2 targetPosition = -Panels[CenteredPanel].anchoredPosition + offset;
+            Vector2 targetPosition = GetTargetPosition(CenteredPanel);
             Content.anchoredPosition = Vector2.Lerp(Content.anchoredPosition, targetPosition, (useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime) * snapSpeed);
 
             if (SelectedPanel != CenteredPanel)
@@ -608,19 +604,35 @@ namespace DanielLochner.Assets.SimpleScrollSnap
             }
         }
 
-        public void GoToPanel(int panelNumber)
+        public void GoToPanel(int panelNumber, bool instantly = false)
         {
             CenteredPanel = panelNumber;
             isSelected = true;
             onPanelSelected.Invoke(CenteredPanel);
 
-            if (pagination != null)
+            if (pagination)
             {
                 Toggles[panelNumber].isOn = true;
             }
             if (useHardSnapping)
             {
                 ScrollRect.inertia = false;
+            }
+
+            if (!instantly)
+            {
+                return;
+            }
+
+            Vector2 targetPosition = GetTargetPosition(panelNumber);
+            Content.anchoredPosition = targetPosition;
+            prevAnchoredPosition = targetPosition;
+            ScrollRect.velocity = velocity = Vector2.zero;
+
+            if (SelectedPanel != CenteredPanel)
+            {
+                onPanelCentered.Invoke(CenteredPanel, SelectedPanel);
+                SelectedPanel = CenteredPanel;
             }
         }
         public void GoToPreviousPanel()
@@ -759,6 +771,12 @@ namespace DanielLochner.Assets.SimpleScrollSnap
             }
         }
 
+        private Vector2 GetTargetPosition(int panelNumber)
+        {
+            float xOffset = (movementType == MovementType.Free || movementAxis == MovementAxis.Horizontal) ? Viewport.rect.width  / 2f : 0f;
+            float yOffset = (movementType == MovementType.Free || movementAxis == MovementAxis.Vertical)   ? Viewport.rect.height / 2f : 0f;
+            return -Panels[panelNumber].anchoredPosition + new Vector2(xOffset, yOffset);
+        }
         private Vector2 GetDisplacementFromCenter(int index)
         {
             return Panels[index].anchoredPosition + Content.anchoredPosition - new Vector2(Viewport.rect.width * (0.5f - Content.anchorMin.x), Viewport.rect.height * (0.5f - Content.anchorMin.y));

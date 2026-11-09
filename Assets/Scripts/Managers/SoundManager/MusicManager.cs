@@ -1,11 +1,10 @@
 
 using System.Collections;
 using UnityEngine;
-using Utils;
 
 namespace Managers
 {
-    public class MusicManager : MonoBehaviourSingleton<MusicManager>
+    public class MusicManager : MonoBehaviour, IMusic
     {
         private const float CrossfadeDuration = 0.4f;
 
@@ -13,9 +12,14 @@ namespace Managers
         private AudioClip _currentClip;
         private Coroutine _transitionRoutine;
         private SettingsSave _settings;
-        
 
-        public void Bind(SettingsSave settings)
+        private void Awake()
+        {
+            _audioSource = GetComponent<AudioSource>();
+        }
+
+
+        public void Initialize(SettingsSave settings)
         {
             if (_settings != null)
             {
@@ -38,26 +42,13 @@ namespace Managers
             
             StartTransition(TransitionToClip(clip));
         }
-        
-        protected override void Awake()
-        {
-            base.Awake();
 
-            _audioSource = gameObject.AddComponent<AudioSource>();
-            _audioSource.loop = true;
-            _audioSource.playOnAwake = false;
-            _audioSource.spatialBlend = 0f;
-            _audioSource.volume = 1f;
-        }
-
-        protected override void OnDestroy()
+        private void OnDestroy()
         {
             if (_settings != null)
             {
                 _settings.OnMusicChanged -= OnMusicEnabledChanged;
             }
-
-            base.OnDestroy();
         }
 
         private void OnMusicEnabledChanged(bool value) => ApplyMusicEnabled(value);
